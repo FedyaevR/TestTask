@@ -1,11 +1,12 @@
 ﻿using System;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace TestTask
 {
     public class ReadOnlyStream : IReadOnlyStream
     {
-        private Stream _localStream;
+        private StreamReader _localStream;
 
         /// <summary>
         /// Конструктор класса. 
@@ -18,7 +19,7 @@ namespace TestTask
             IsEof = true;
 
             // TODO : Заменить на создание реального стрима для чтения файла!
-            _localStream = null;
+            _localStream = new StreamReader(fileFullPath);
         }
                 
         /// <summary>
@@ -39,7 +40,22 @@ namespace TestTask
         public char ReadNextChar()
         {
             // TODO : Необходимо считать очередной символ из _localStream
-            throw new NotImplementedException();
+            var pattern = @"[a-zA-Z]";
+            
+            if (!IsEof)
+            {
+                var result = (char)_localStream.Read();
+                IsEof = _localStream.EndOfStream;
+                
+                if (!Regex.IsMatch(result.ToString(), pattern))
+                {
+                    throw new FormatException();
+                }
+                
+                return result;
+            }
+
+            throw new EndOfStreamException();
         }
 
         /// <summary>
@@ -50,11 +66,18 @@ namespace TestTask
             if (_localStream == null)
             {
                 IsEof = true;
+                
                 return;
             }
-
-            _localStream.Position = 0;
+            
+            _localStream.DiscardBufferedData();
+            _localStream.BaseStream.Seek(0, SeekOrigin.Begin);
             IsEof = false;
+        }
+
+        public void Dispose()
+        {
+            _localStream?.Dispose();
         }
     }
 }
